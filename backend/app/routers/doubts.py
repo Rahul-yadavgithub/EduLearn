@@ -1,45 +1,62 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File
+from typing import Optional
+
 from app.schemas.doubt import DoubtCreateSchema, DoubtAnswerSchema
-from app.core.database import db
 from app.core.security import get_current_user
-from datetime import datetime, timezone
-import uuid, base64
+from app.services.doubt_service import (
+    list_doubts,
+    create_doubt,
+    answer_doubt,
+    upload_doubt_image,
+)
 
-router = APIRouter(prefix="/doubts", tags=["Doubts"])
+router = APIRouter(
+    prefix="/doubts",
+    tags=["Doubts"]
+)
+
+# -------------------------------------------------
+# GET DOUBTS
+# -------------------------------------------------
+@router.get("")
+async def get_doubts(
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
+):
+    return await list_doubts(current_user, status)
 
 
+# -------------------------------------------------
+# CREATE DOUBT
+# -------------------------------------------------
 @router.post("")
-async def create_doubt(data: DoubtCreateSchema, user=Depends(get_current_user)):
-    if user["role"] != "student":
-        raise HTTPException(403)
-
-    doubt_id = f"doubt_{uuid.uuid4().hex[:12]}"
-    doc = data.dict()
-    doc.update({
-        "doubt_id": doubt_id,
-        "student_id": user["user_id"],
-        "student_name": user["name"],
-        "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat()
-    })
-
-    await db.doubts.insert_one(doc)
-    return doc
+async def create_doubt_api(
+    data: DoubtCreateSchema,
+    current_user: dict = Depends(get_current_user),
+):
+    return await create_doubt(data, current_user)
 
 
+# -------------------------------------------------
+# ANSWER DOUBT
+# -------------------------------------------------
 @router.put("/{doubt_id}/answer")
-async def answer_doubt(doubt_id: str, data: DoubtAnswerSchema, user=Depends(get_current_user)):
-    if user["role"] != "teacher" or not user["is_approved"]:
-        raise HTTPException(403)
+async def answer_doubt_api(
+    doubt_id: str,
+    data: DoubtAnswerSchema,
+    current_user: dict = Depends(get_current_user),
+):
+    await answer_doubt(doubt_id, data, current_user)
+    return {"message": "Doubt answered successfully"}
 
-    await db.doubts.update_one(
-        {"doubt_id": doubt_id},
-        {"$set": {
-            "status": "answered",
-            **data.dict(exclude_none=True),
-            "answered_by": user["user_id"],
-            "answered_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
 
-    return {"message": "Answered"}
+# -------------------------------------------------
+# UPLOAD IMAGE
+# -------------------------------------------------
+@router.post("/upload-image")
+async def upload_image_api(
+    image: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    image_url = await upload_doubt_image(image)
+    return {"image_url": image_url}

@@ -1,57 +1,105 @@
 from fastapi import HTTPException
 from datetime import datetime, timezone
 import uuid
+
 from app.core.database import db
 
 
-async def submit_test(data, user):
+# -------------------------------------------------
+# SUBMIT TEST
+# -------------------------------------------------
+async def submit_test(data, user: dict):
     if user["role"] != "student":
-        raise HTTPException(403)
+        raise HTTPException(status_code=403, detail="Only students can submit tests")
 
-    paper = await db.papers.find_one({"paper_id": data.paper_id})
+    paper = await db.papers.find_one({"paper_id": data.paper_id}, {"_id": 0})
     if not paper:
-        raise HTTPException(404)
+        raise HTTPException(status_code=404, detail="Paper not found")
 
+    total_questions = len(paper["questions"])
     correct = wrong = unattempted = 0
     subject_wise = {}
 
     for q in paper["questions"]:
-        sid = q.get("subject", paper["subject"])
-        subject_wise.setdefault(sid, {"total": 0, "correct": 0, "wrong": 0})
-        subject_wise[sid]["total"] += 1
+        q_id = q["question_id"]
+        subject = q.get("subject", paper["subject"])
 
-        ans = data.answers.get(q["question_id"])
+        if subject not in subject_wise:
+            subject_wise[subject] = {
+                "total": 0,
+                "correct": 0,
+                "wrong": 0
+            }
+
+        subject_wise[subject]["total"] += 1
+
+        ans = data.answers.get(q_id)
+
         if not ans:
             unattempted += 1
         elif ans == q["correct_answer"]:
             correct += 1
-            subject_wise[sid]["correct"] += 1
+            subject_wise[subject]["correct"] += 1
         else:
             wrong += 1
-            subject_wise[sid]["wrong"] += 1
+            subject_wise[subject]["wrong"] += 1
 
-    score = (correct * 4) - wrong
-    accuracy = round((correct / max(1, correct + wrong)) * 100, 2)
+    score = (correct * 4) - (wrong * 1)
+    accuracy = round(
+        (correct / (correct + wrong) * 100) if (correct + wrong) > 0 else 0,
+        2
+    )
 
     result_id = f"result_{uuid.uuid4().hex[:12]}"
-    doc = {
+
+    result_doc = {
         "result_id": result_id,
         "student_id": user["user_id"],
         "paper_id": data.paper_id,
         "paper_title": paper["title"],
+        "exam_type": paper["exam_type"],
         "subject": paper["subject"],
+        "total_questions": total_questions,
+        "correct_answers": correct,
+        "wrong_answers": wrong,
+        "unattempted": unattempted,
         "score": score,
         "accuracy": accuracy,
+        "time_taken": data.time_taken,
         "subject_wise": subject_wise,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    await db.test_results.insert_one(doc)
-    return doc
+    await db.test_results.insert_one(result_doc)
+    return result_doc
 
 
-async def get_progress(user):
-    results = await db.test_results.find({"student_id": user["user_id"]}).to_list(1000)
-    if not results:
-        return {"total_tests": 0}
-    return results
+# -------------------------------------------------
+# GET STUDENT RESULTS
+# -------------------------------------------------
+async def get_test_results(user: dict):
+    if user["role"] != "student":
+        raise HTTPException(status_code=403, detail="Only students can view results")
+
+    return await db.test_results.find(
+        {"student_id": user["user_id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+
+
+# -------------------------------------------------
+# GET SINGLE RESULT
+# -------------------------------------------------
+async def get_test_result(result_id: str, user: dict):
+    result = await db.test_results.find_one(
+        {"result_id": result_id},
+        {"_id": 0}
+    )
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Result not found")
+
+    if user["role"] == "student" and result["student_id"] != user["user_id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    return result
