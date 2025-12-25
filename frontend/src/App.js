@@ -12,6 +12,8 @@ import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import ExamPage from "@/pages/student/ExamPage";
 import ResultPage from "@/pages/student/ResultPage";
 import AuthCallback from "@/pages/AuthCallback";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import PendingApprovalPage from "@/pages/PendingApprovalPage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -76,7 +78,15 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
+  // Check if teacher is approved
+  if (user?.role === "teacher" && user?.is_approved === false) {
+    return <PendingApprovalPage user={user} />;
+  }
+
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    if (user?.role === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
     return <Navigate to={user?.role === "teacher" ? "/teacher" : "/student"} replace />;
   }
 
@@ -91,7 +101,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 function AppRouter() {
   const location = useLocation();
   
-  // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
   // Check for session_id in URL fragment (Google OAuth callback)
   if (location.hash?.includes('session_id=')) {
     return <AuthCallback />;
@@ -103,6 +112,16 @@ function AppRouter() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      
+      {/* Admin Routes */}
+      <Route
+        path="/admin/*"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
       
       {/* Student Routes */}
       <Route
