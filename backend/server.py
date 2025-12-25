@@ -32,11 +32,14 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 168  # 7 days
 
 # LLM Configuration
+# EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+openai_client = AsyncOpenAI(api_key=EMERGENT_LLM_KEY) if EMERGENT_LLM_KEY else None
 
 # Admin credentials for teacher approval
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@learnhub.com')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'rahulyadavjnvshravasti669@gmail.com')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Dakshana@123')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -871,26 +874,30 @@ async def get_progress(current_user: dict = Depends(get_current_user)):
 # ============== AI PAPER GENERATION ==============
 
 @api_router.post("/generate-paper")
-async def generate_paper(request: PaperGenerationRequest, current_user: dict = Depends(get_current_user)):
+async def generate_paper(
+    request: PaperGenerationRequest,
+    current_user: dict = Depends(get_current_user)
+):
     if current_user["role"] != "teacher":
         raise HTTPException(status_code=403, detail="Only teachers can generate papers")
-    
+
     if not current_user.get("is_approved", True):
         raise HTTPException(status_code=403, detail="Your account is pending approval")
-    
+
     if not EMERGENT_LLM_KEY:
-        raise HTTPException(status_code=500, detail="LLM API key not configured")
-    
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")  
+
     try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-        
-        exam_context = f"{request.purpose}"
+        client = AsyncOpenAI(api_key=EMERGENT_LLM_KEY)
+
+        exam_context = request.purpose
         if request.sub_type:
             exam_context += f" ({request.sub_type})"
         if request.class_level:
             exam_context += f" for Class {request.class_level}"
-        
-        prompt = f"""Generate {request.num_questions} multiple choice questions for {exam_context} exam.
+
+        prompt = f"""
+Generate {request.num_questions} multiple choice questions for {exam_context} exam.
 
 Subject: {request.subject}
 Difficulty: {request.difficulty}
@@ -898,24 +905,24 @@ Language: {request.language}
 
 {f"Reference Content: {request.reference_content}" if request.reference_content else ""}
 
-Generate questions in the following JSON format:
+Return ONLY valid JSON in the following format:
 {{
-    "questions": [
-        {{
-            "question_id": "q1",
-            "question_text": "Question text here",
-            "subject": "{request.subject}",
-            "options": {{
-                "A": "Option A",
-                "B": "Option B",
-                "C": "Option C",
-                "D": "Option D"
-            }},
-            "correct_answer": "A",
-            "explanation": "Brief explanation",
-            "difficulty": "{request.difficulty}"
-        }}
-    ]
+  "questions": [
+    {{
+      "question_id": "q1",
+      "question_text": "Question text here",
+      "subject": "{request.subject}",
+      "options": {{
+        "A": "Option A",
+        "B": "Option B",
+        "C": "Option C",
+        "D": "Option D"
+      }},
+      "correct_answer": "A",
+      "explanation": "Brief explanation",
+      "difficulty": "{request.difficulty}"
+    }}
+  ]
 }}
 
 Important:
@@ -923,32 +930,32 @@ Important:
 - Ensure correct answers are accurate
 - Provide clear explanations
 - Mix different topics within the subject
-- Return ONLY valid JSON, no markdown or extra text"""
+- Return ONLY valid JSON, no markdown or extra text
+"""
 
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"paper_gen_{uuid.uuid4().hex[:8]}",
-            system_message="You are an expert educational content creator specializing in creating high-quality exam questions for competitive exams like JEE, NEET, and school board exams. Always return valid JSON only."
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an expert educational content creator. "
+                        "Always return ONLY valid JSON. No markdown."
+                    )
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,
         )
-        chat.with_model("openai", "gpt-5.2")
-        
-        user_message = UserMessage(text=prompt)
-        response = await chat.send_message(user_message)
-        
-        response_text = response.strip()
-        if response_text.startswith("```"):
-            response_text = response_text.split("```")[1]
-            if response_text.startswith("json"):
-                response_text = response_text[4:]
-        
+
+        response_text = response.choices[0].message.content.strip()
+
         questions_data = json.loads(response_text)
         questions = questions_data.get("questions", [])
-        
+
         for i, q in enumerate(questions):
-            if "question_id" not in q:
-                q["question_id"] = f"q{i+1}"
-        
-        # Save to generated_papers collection
+            q.setdefault("question_id", f"q{i+1}")
+
         gen_paper_id = f"gen_{uuid.uuid4().hex[:12]}"
         gen_paper_doc = {
             "gen_paper_id": gen_paper_id,
@@ -962,10 +969,11 @@ Important:
             "language": request.language,
             "questions": questions,
             "is_published": False,
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
+
         await db.generated_papers.insert_one(gen_paper_doc)
-        
+
         return {
             "success": True,
             "gen_paper_id": gen_paper_id,
@@ -975,137 +983,46 @@ Important:
                 "subject": request.subject,
                 "difficulty": request.difficulty,
                 "exam_type": request.purpose,
-                "language": request.language
-            }
+                "language": request.language,
+            },
         }
-        
+
     except json.JSONDecodeError as e:
         logger.error(f"JSON parse error: {e}")
         raise HTTPException(status_code=500, detail="Failed to parse generated questions")
+
     except Exception as e:
         logger.error(f"Paper generation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@api_router.get("/generated-papers")
-async def get_generated_papers(current_user: dict = Depends(get_current_user)):
-    """Get all generated papers for the current teacher"""
-    if current_user["role"] != "teacher":
-        raise HTTPException(status_code=403, detail="Only teachers can view generated papers")
-    
-    papers = await db.generated_papers.find(
-        {"teacher_id": current_user["user_id"]},
-        {"_id": 0}
-    ).sort("created_at", -1).to_list(50)
-    return papers
-
-@api_router.get("/generated-papers/{gen_paper_id}")
-async def get_generated_paper(gen_paper_id: str, current_user: dict = Depends(get_current_user)):
-    """Get a specific generated paper"""
-    paper = await db.generated_papers.find_one({"gen_paper_id": gen_paper_id}, {"_id": 0})
-    if not paper:
-        raise HTTPException(status_code=404, detail="Generated paper not found")
-    return paper
-
-@api_router.post("/generated-papers/{gen_paper_id}/publish")
-async def publish_generated_paper(gen_paper_id: str, paper_data: SaveGeneratedPaper, current_user: dict = Depends(get_current_user)):
-    """Publish a generated paper to make it available for students"""
-    if current_user["role"] != "teacher":
-        raise HTTPException(status_code=403, detail="Only teachers can publish papers")
-    
-    if not current_user.get("is_approved", True):
-        raise HTTPException(status_code=403, detail="Your account is pending approval")
-    
-    gen_paper = await db.generated_papers.find_one({"gen_paper_id": gen_paper_id})
-    if not gen_paper:
-        raise HTTPException(status_code=404, detail="Generated paper not found")
-    
-    # Create a new paper for students
-    paper_id = f"paper_{uuid.uuid4().hex[:12]}"
-    paper_doc = {
-        "paper_id": paper_id,
-        "title": paper_data.title,
-        "subject": paper_data.subject,
-        "exam_type": paper_data.exam_type,
-        "sub_type": paper_data.sub_type,
-        "class_level": paper_data.class_level,
-        "year": paper_data.year or str(datetime.now().year),
-        "questions": paper_data.questions,
-        "language": paper_data.language,
-        "created_by": current_user["user_id"],
-        "source_gen_paper_id": gen_paper_id,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.papers.insert_one(paper_doc)
-    
-    # Mark generated paper as published
-    await db.generated_papers.update_one(
-        {"gen_paper_id": gen_paper_id},
-        {"$set": {"is_published": True, "published_paper_id": paper_id}}
-    )
-    
-    return {
-        "message": "Paper published successfully",
-        "paper_id": paper_id
-    }
-
-@api_router.get("/generated-papers/{gen_paper_id}/download")
-async def download_generated_paper_pdf(gen_paper_id: str, current_user: dict = Depends(get_current_user)):
-    """Download generated paper as PDF"""
-    if current_user["role"] != "teacher":
-        raise HTTPException(status_code=403, detail="Only teachers can download generated papers")
-    
-    gen_paper = await db.generated_papers.find_one({"gen_paper_id": gen_paper_id}, {"_id": 0})
-    if not gen_paper:
-        raise HTTPException(status_code=404, detail="Generated paper not found")
-    
-    # Create paper format for PDF generation
-    paper_for_pdf = {
-        "title": f"{gen_paper['subject']} - {gen_paper['exam_type']} ({gen_paper['difficulty']})",
-        "subject": gen_paper["subject"],
-        "exam_type": gen_paper["exam_type"],
-        "year": str(datetime.now().year),
-        "questions": gen_paper["questions"]
-    }
-    
-    pdf_content = generate_paper_pdf(paper_for_pdf)
-    
-    filename = f"{gen_paper['subject']}_{gen_paper['exam_type']}_paper.pdf"
-    return StreamingResponse(
-        io.BytesIO(pdf_content),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
 
 # ============== VOICE TRANSCRIPTION ==============
 
 @api_router.post("/transcribe")
-async def transcribe_audio(audio: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+async def transcribe_audio(
+    audio: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
     if not EMERGENT_LLM_KEY:
-        raise HTTPException(status_code=500, detail="LLM API key not configured")
-    
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+
     try:
-        from emergentintegrations.llm.openai import OpenAISpeechToText
-        
-        stt = OpenAISpeechToText(api_key=EMERGENT_LLM_KEY)
-        
-        audio_content = await audio.read()
-        
-        audio_file = io.BytesIO(audio_content)
-        audio_file.name = audio.filename or "audio.webm"
-        
-        response = await stt.transcribe(
-            file=audio_file,
+        client = AsyncOpenAI(api_key=EMERGENT_LLM_KEY)
+
+        audio_bytes = await audio.read()
+
+        transcription = await client.audio.transcriptions.create(
+            file=(audio.filename or "audio.webm", audio_bytes),
             model="whisper-1",
-            response_format="json",
-            language="en"
+            language="en",
         )
-        
-        return {"text": response.text}
-        
+
+        return {"text": transcription.text}
+
     except Exception as e:
         logger.error(f"Transcription error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # ============== FILE UPLOAD FOR REFERENCE ==============
 
