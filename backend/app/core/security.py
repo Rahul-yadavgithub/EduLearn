@@ -5,7 +5,6 @@ from fastapi import HTTPException, Request, Depends
 
 from app.core.config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS
 from app.core.database import get_db
-db = get_db()
 
 # ---------------- PASSWORD ----------------
 def hash_password(password: str) -> str:
@@ -24,6 +23,7 @@ def create_token(user_id: str) -> str:
 
 # ---------------- AUTH ----------------
 async def get_current_user(request: Request) -> dict:
+    db = get_db()
     token = request.cookies.get("session_token")
 
     if not token:
