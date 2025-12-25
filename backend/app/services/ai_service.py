@@ -22,7 +22,7 @@ if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not configured")
 
 genai.configure(api_key=GEMINI_API_KEY)
-paper_model = genai.GenerativeModel("models/gemini-1.5-pro")
+paper_model = genai.GenerativeModel("models/gemini-1.0-pro")
 
 # ======================================================
 # OPENROUTER CONFIG (AUDIO TRANSCRIPTION)
