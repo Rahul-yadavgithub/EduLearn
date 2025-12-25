@@ -2,7 +2,8 @@ from fastapi import HTTPException, Request, Response
 from datetime import datetime, timezone, timedelta
 import uuid, httpx
 
-from app.core.database import db
+from app.core.database import get_db
+db = get_db()
 from app.core.security import (
     hash_password,
     verify_password,

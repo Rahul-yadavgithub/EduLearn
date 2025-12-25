@@ -9,7 +9,8 @@ import base64
 from openai import AsyncOpenAI
 import google.generativeai as genai
 
-from app.core.database import db
+from app.core.database import get_db
+db = get_db()
 
 logger = logging.getLogger(__name__)
 

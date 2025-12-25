@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 import uuid, io
 from typing import Dict, Any, List, Optional
 
-from app.core.database import db
+from app.core.database import get_db
+db = get_db()
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER

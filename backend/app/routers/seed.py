@@ -2,7 +2,8 @@ from fastapi import APIRouter
 from datetime import datetime, timezone
 import uuid
 
-from app.core.database import db
+from app.core.database import get_db
+db = get_db()
 from app.core.config import ADMIN_EMAIL, ADMIN_PASSWORD
 from app.core.security import hash_password
 

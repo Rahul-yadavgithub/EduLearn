@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 import uuid
 import base64
 
-from app.core.database import db
+from app.core.database import get_db
+db = get_db()
 
 
 # -------------------------------------------------
