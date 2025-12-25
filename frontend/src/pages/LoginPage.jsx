@@ -13,6 +13,9 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('admin@learnhub.com');
+  const [adminPassword, setAdminPassword] = useState('admin123');
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -27,13 +30,36 @@ const LoginPage = () => {
       localStorage.setItem('token', response.data.token);
       toast.success('Login successful!');
       
-      const role = response.data.user.role;
-      navigate(role === 'teacher' ? '/teacher' : '/student', { 
-        state: { user: response.data.user },
-        replace: true 
-      });
+      const user = response.data.user;
+      if (user.role === 'admin') {
+        navigate('/admin', { state: { user }, replace: true });
+      } else if (user.role === 'teacher' && !user.is_approved) {
+        navigate('/teacher', { state: { user }, replace: true });
+      } else {
+        navigate(user.role === 'teacher' ? '/teacher' : '/student', { 
+          state: { user },
+          replace: true 
+        });
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/auth/admin-login`, {
+        email: adminEmail,
+        password: adminPassword
+      });
+      localStorage.setItem('token', response.data.token);
+      toast.success('Admin login successful!');
+      navigate('/admin', { state: { user: response.data.user }, replace: true });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Admin login failed');
     } finally {
       setLoading(false);
     }
