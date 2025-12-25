@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.core.db import db
+from app.core.database import db
 from app.core.security import get_current_user
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])

@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from datetime import datetime, timezone
 import uuid, io
-from app.core.db import db
+from app.core.database import db
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER

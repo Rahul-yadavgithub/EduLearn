@@ -1,7 +1,7 @@
 from fastapi import HTTPException, Request, Response
 from datetime import datetime, timezone, timedelta
 import uuid, jwt, bcrypt, httpx
-from app.core.db import db
+from app.core.database import db
 from app.core.config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, ADMIN_EMAIL, ADMIN_PASSWORD
 
 

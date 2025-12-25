@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.core.db import db
+from app.core.database import db
 from datetime import datetime, timezone
 
 router = APIRouter(tags=["Seed"])

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from app.schemas.auth import RegisterRequest, LoginRequest, AuthResponse
-from app.core.db import db
+from app.core.database import db
 from app.core.security import (
     hash_password,
     verify_password,

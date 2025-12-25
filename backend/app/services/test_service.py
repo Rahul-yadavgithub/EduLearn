@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from datetime import datetime, timezone
 import uuid
-from app.core.db import db
+from app.core.database import db
 
 
 async def submit_test(data, user):

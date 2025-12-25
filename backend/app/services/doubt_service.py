@@ -1,7 +1,7 @@
 from fastapi import HTTPException, UploadFile
 from datetime import datetime, timezone
 import uuid, base64
-from app.core.db import db
+from app.core.database import db
 
 
 async def list_doubts(user, status=None):

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.schemas.auth import TeacherApprovalRequest
-from app.core.db import db
+from app.core.database import db
 from app.core.security import get_admin_user
 from datetime import datetime, timezone
 import uuid
