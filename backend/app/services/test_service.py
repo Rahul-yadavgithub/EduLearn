@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import uuid
 
 from app.core.database import get_db
+from app.utils.mongo import serialize_mongo, serialize_mongo_list
 
 
 # -------------------------------------------------
@@ -10,10 +11,15 @@ from app.core.database import get_db
 # -------------------------------------------------
 async def submit_test(data, user: dict):
     db = get_db()
+
     if user["role"] != "student":
         raise HTTPException(status_code=403, detail="Only students can submit tests")
 
-    paper = await db.papers.find_one({"paper_id": data.paper_id}, {"_id": 0})
+    paper = await db.papers.find_one(
+        {"paper_id": data.paper_id},
+        {"_id": 0}
+    )
+
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
 
@@ -25,15 +31,13 @@ async def submit_test(data, user: dict):
         q_id = q["question_id"]
         subject = q.get("subject", paper["subject"])
 
-        if subject not in subject_wise:
-            subject_wise[subject] = {
-                "total": 0,
-                "correct": 0,
-                "wrong": 0
-            }
+        subject_wise.setdefault(subject, {
+            "total": 0,
+            "correct": 0,
+            "wrong": 0
+        })
 
         subject_wise[subject]["total"] += 1
-
         ans = data.answers.get(q_id)
 
         if not ans:
@@ -45,16 +49,14 @@ async def submit_test(data, user: dict):
             wrong += 1
             subject_wise[subject]["wrong"] += 1
 
-    score = (correct * 4) - (wrong * 1)
+    score = (correct * 4) - wrong
     accuracy = round(
         (correct / (correct + wrong) * 100) if (correct + wrong) > 0 else 0,
         2
     )
 
-    result_id = f"result_{uuid.uuid4().hex[:12]}"
-
     result_doc = {
-        "result_id": result_id,
+        "result_id": f"result_{uuid.uuid4().hex[:12]}",
         "student_id": user["user_id"],
         "paper_id": data.paper_id,
         "paper_title": paper["title"],
@@ -72,7 +74,9 @@ async def submit_test(data, user: dict):
     }
 
     await db.test_results.insert_one(result_doc)
-    return result_doc
+
+    # ✅ Safe even if Mongo injects _id later
+    return serialize_mongo(result_doc)
 
 
 # -------------------------------------------------
@@ -80,13 +84,16 @@ async def submit_test(data, user: dict):
 # -------------------------------------------------
 async def get_test_results(user: dict):
     db = get_db()
+
     if user["role"] != "student":
         raise HTTPException(status_code=403, detail="Only students can view results")
 
-    return await db.test_results.find(
+    results = await db.test_results.find(
         {"student_id": user["user_id"]},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
+
+    return serialize_mongo_list(results)
 
 
 # -------------------------------------------------
@@ -94,6 +101,7 @@ async def get_test_results(user: dict):
 # -------------------------------------------------
 async def get_test_result(result_id: str, user: dict):
     db = get_db()
+
     result = await db.test_results.find_one(
         {"result_id": result_id},
         {"_id": 0}
@@ -105,4 +113,4 @@ async def get_test_result(result_id: str, user: dict):
     if user["role"] == "student" and result["student_id"] != user["user_id"]:
         raise HTTPException(status_code=403, detail="Access denied")
 
-    return result
+    return serialize_mongo(result)
