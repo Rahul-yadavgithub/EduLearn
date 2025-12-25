@@ -38,8 +38,8 @@ EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
 openai_client = AsyncOpenAI(api_key=EMERGENT_LLM_KEY) if EMERGENT_LLM_KEY else None
 
 # Admin credentials for teacher approval
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'rahulyadavjnvshravasti669@gmail.com')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Dakshana@123')
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@learnhub.com')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -1199,3 +1199,6 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+# my key = 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
