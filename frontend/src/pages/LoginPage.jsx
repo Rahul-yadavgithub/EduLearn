@@ -165,8 +165,53 @@ const LoginPage = () => {
                   Sign up
                 </Link>
               </p>
+              
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAdminLogin(!showAdminLogin)}
+                  className="text-xs text-slate-500 hover:text-slate-400"
+                >
+                  Admin Login
+                </button>
+              </div>
             </CardContent>
           </Card>
+          
+          {/* Admin Login Modal */}
+          {showAdminLogin && (
+            <Card className="mt-4 bg-slate-900/50 border-slate-800">
+              <CardContent className="p-4">
+                <p className="text-sm text-slate-400 mb-3">Admin Login</p>
+                <div className="space-y-3">
+                  <Input
+                    type="email"
+                    placeholder="Admin email"
+                    className="bg-slate-900 border-slate-700 text-white"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    data-testid="admin-email-input"
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Admin password"
+                    className="bg-slate-900 border-slate-700 text-white"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    data-testid="admin-password-input"
+                  />
+                  <Button 
+                    onClick={handleAdminLogin}
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    disabled={loading}
+                    data-testid="admin-login-btn"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Login as Admin'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
