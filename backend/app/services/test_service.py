@@ -3,13 +3,13 @@ from datetime import datetime, timezone
 import uuid
 
 from app.core.database import get_db
-db = get_db()
 
 
 # -------------------------------------------------
 # SUBMIT TEST
 # -------------------------------------------------
 async def submit_test(data, user: dict):
+    db = get_db()
     if user["role"] != "student":
         raise HTTPException(status_code=403, detail="Only students can submit tests")
 
@@ -79,6 +79,7 @@ async def submit_test(data, user: dict):
 # GET STUDENT RESULTS
 # -------------------------------------------------
 async def get_test_results(user: dict):
+    db = get_db()
     if user["role"] != "student":
         raise HTTPException(status_code=403, detail="Only students can view results")
 
@@ -92,6 +93,7 @@ async def get_test_results(user: dict):
 # GET SINGLE RESULT
 # -------------------------------------------------
 async def get_test_result(result_id: str, user: dict):
+    db = get_db()
     result = await db.test_results.find_one(
         {"result_id": result_id},
         {"_id": 0}

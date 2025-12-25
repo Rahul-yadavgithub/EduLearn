@@ -4,13 +4,13 @@ import uuid
 import base64
 
 from app.core.database import get_db
-db = get_db()
 
 
 # -------------------------------------------------
 # LIST DOUBTS
 # -------------------------------------------------
 async def list_doubts(user: dict, status: str | None = None):
+    db = get_db()
     query = {}
 
     if user["role"] == "student":
@@ -32,6 +32,7 @@ async def list_doubts(user: dict, status: str | None = None):
 # CREATE DOUBT
 # -------------------------------------------------
 async def create_doubt(data, user: dict):
+    db = get_db()
     if user["role"] != "student":
         raise HTTPException(
             status_code=403,
@@ -63,6 +64,7 @@ async def create_doubt(data, user: dict):
 # ANSWER DOUBT
 # -------------------------------------------------
 async def answer_doubt(doubt_id: str, data, user: dict):
+    db = get_db()
     if user["role"] != "teacher":
         raise HTTPException(
             status_code=403,

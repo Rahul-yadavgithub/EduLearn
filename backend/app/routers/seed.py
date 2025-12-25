@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 import uuid
 
 from app.core.database import get_db
-db = get_db()
 from app.core.config import ADMIN_EMAIL, ADMIN_PASSWORD
 from app.core.security import hash_password
 
@@ -109,6 +108,7 @@ async def seed_data():
     ]
 
     inserted_papers = 0
+    db = get_db()
 
     for paper in sample_papers:
         exists = await db.papers.find_one({"paper_id": paper["paper_id"]})

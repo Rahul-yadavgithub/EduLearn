@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.database import get_db
-db = get_db()
 from app.core.security import get_current_user
 
 router = APIRouter(
@@ -16,6 +15,7 @@ async def list_notifications(current_user: dict = Depends(get_current_user)):
     """
     Get latest notifications for the logged-in user.
     """
+    db = get_db()
     notifications = await (
         db.notifications.find(
             {"user_id": current_user["user_id"]},
@@ -36,6 +36,7 @@ async def get_unread_count(current_user: dict = Depends(get_current_user)):
     """
     Get count of unread notifications.
     """
+    db = get_db()
     count = await db.notifications.count_documents({
         "user_id": current_user["user_id"],
         "is_read": False
@@ -55,6 +56,7 @@ async def mark_notification_read(
     """
     Mark a specific notification as read.
     """
+    db = get_db()
     result = await db.notifications.update_one(
         {
             "notification_id": notification_id,
@@ -80,6 +82,7 @@ async def mark_all_read(current_user: dict = Depends(get_current_user)):
     """
     Mark all notifications as read for the current user.
     """
+    db = get_db()
     await db.notifications.update_many(
         {"user_id": current_user["user_id"]},
         {"$set": {"is_read": True}}

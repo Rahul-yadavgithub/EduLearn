@@ -10,7 +10,6 @@ from openai import AsyncOpenAI
 import google.generativeai as genai
 
 from app.core.database import get_db
-db = get_db()
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +48,7 @@ openrouter_client = AsyncOpenAI(
 # ======================================================
 
 async def generate_paper_ai(data, current_user: dict):
+    db = get_db()
 
     if current_user["role"] != "teacher":
         raise HTTPException(403, "Only teachers can generate papers")

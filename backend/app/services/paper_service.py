@@ -4,7 +4,6 @@ import uuid, io
 from typing import Dict, Any, List, Optional
 
 from app.core.database import get_db
-db = get_db()
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER
@@ -16,10 +15,12 @@ from reportlab.lib.pagesizes import A4
 # -------------------------------------------------
 
 async def list_papers(filters: Dict[str, Any]) -> List[Dict[str, Any]]:
+    db = get_db()
     return await db.papers.find(filters, {"_id": 0}).to_list(100)
 
 
 async def get_paper_by_id(paper_id: str) -> Dict[str, Any]:
+    db = get_db()
     paper = await db.papers.find_one({"paper_id": paper_id}, {"_id": 0})
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
@@ -27,6 +28,7 @@ async def get_paper_by_id(paper_id: str) -> Dict[str, Any]:
 
 
 async def create_paper(data, user: dict) -> Dict[str, Any]:
+    db = get_db()
     if user["role"] != "teacher":
         raise HTTPException(status_code=403, detail="Only teachers can create papers")
 

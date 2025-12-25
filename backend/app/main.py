@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import logging
 
@@ -25,12 +26,24 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # -------------------------------------------------
-# APP
+# LIFESPAN (DB INIT HERE)
 # -------------------------------------------------
-app = FastAPI(title="Education Platform API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    connect_db()          # ✅ runs before first request
+    yield
+    close_db()            # ✅ runs on shutdown
 
 # -------------------------------------------------
-# CORS (MUST BE BEFORE ROUTERS)
+# APP
+# -------------------------------------------------
+app = FastAPI(
+    title="Education Platform API",
+    lifespan=lifespan     # ✅ THIS IS IMPORTANT
+)
+
+# -------------------------------------------------
+# CORS (BEFORE ROUTERS)
 # -------------------------------------------------
 setup_cors(app)
 
@@ -52,15 +65,3 @@ app.include_router(seed.router, prefix="/api")
 @app.get("/")
 async def root():
     return {"message": "Education Platform API", "status": "running"}
-
-# -------------------------------------------------
-# STARTUP / SHUTDOWN
-# -------------------------------------------------
-@app.on_event("startup")
-async def startup():
-    connect_db()   # ✅ correct
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    close_db()

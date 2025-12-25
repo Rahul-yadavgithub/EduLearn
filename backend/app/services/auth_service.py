@@ -3,7 +3,6 @@ from datetime import datetime, timezone, timedelta
 import uuid, httpx
 
 from app.core.database import get_db
-db = get_db()
 from app.core.security import (
     hash_password,
     verify_password,
@@ -16,6 +15,7 @@ from app.core.config import ADMIN_EMAIL, ADMIN_PASSWORD
 # REGISTER
 # -------------------------------------------------
 async def register_user(data):
+    db = get_db()
     if await db.users.find_one({"email": data.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -52,6 +52,7 @@ async def register_user(data):
 # LOGIN
 # -------------------------------------------------
 async def login_user(data):
+    db = get_db()
     user = await db.users.find_one({"email": data.email}, {"_id": 0})
 
     if not user or not user.get("password"):
@@ -79,6 +80,7 @@ async def login_user(data):
 async def admin_login(data):
     if data.email != ADMIN_EMAIL or data.password != ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="Invalid admin credentials")
+    db = get_db()
 
     admin = await db.users.find_one({"email": ADMIN_EMAIL}, {"_id": 0})
 
@@ -112,6 +114,7 @@ async def admin_login(data):
 # OAUTH / SESSION LOGIN
 # -------------------------------------------------
 async def process_session_login(request: Request, response: Response):
+    db = get_db()
     body = await request.json()
     session_id = body.get("session_id")
     role = body.get("role", "student")
@@ -193,6 +196,7 @@ async def process_session_login(request: Request, response: Response):
 # LOGOUT
 # -------------------------------------------------
 async def logout_user(request: Request, response: Response):
+    db = get_db()
     token = request.cookies.get("session_token")
     if token:
         await db.user_sessions.delete_one({"session_token": token})

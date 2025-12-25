@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 import uuid
 
 from app.core.database import get_db
-db = get_db()
 from app.core.security import get_admin_user
 from app.schemas.auth import TeacherApprovalRequest
 
@@ -20,6 +19,7 @@ async def get_pending_teachers(admin: dict = Depends(get_admin_user)):
     """
     Get all teachers whose accounts are pending approval.
     """
+    db = get_db()
     teachers = await db.users.find(
         {"role": "teacher", "is_approved": False},
         {"_id": 0, "password": 0}
@@ -36,6 +36,7 @@ async def get_all_teachers(admin: dict = Depends(get_admin_user)):
     """
     Get all teachers (approved and unapproved).
     """
+    db = get_db()
     teachers = await db.users.find(
         {"role": "teacher"},
         {"_id": 0, "password": 0}
@@ -55,7 +56,7 @@ async def approve_teacher(
     """
     Approve or revoke a teacher's account.
     """
-
+    db = get_db()
     result = await db.users.update_one(
         {"user_id": data.user_id, "role": "teacher"},
         {"$set": {"is_approved": data.approve}}
