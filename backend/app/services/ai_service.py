@@ -10,12 +10,25 @@ from app.core.database import db
 
 logger = logging.getLogger(__name__)
 
-EMERGENT_LLM_KEY = os.getenv("EMERGENT_LLM_KEY")
+# ======================================================
+# OPENROUTER CONFIG
+# ======================================================
 
-if not EMERGENT_LLM_KEY:
-    raise RuntimeError("EMERGENT_LLM_KEY is not configured")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
-client = AsyncOpenAI(api_key=EMERGENT_LLM_KEY)
+if not OPENROUTER_API_KEY:
+    raise RuntimeError("OPENROUTER_API_KEY is not configured")
+
+client = AsyncOpenAI(
+    api_key=OPENROUTER_API_KEY,
+    base_url=OPENROUTER_BASE_URL,
+    default_headers={
+        # REQUIRED by OpenRouter
+        "HTTP-Referer": "https://your-app-domain.com",  # can be localhost
+        "X-Title": "AI Exam Paper Generator"
+    }
+)
 
 # ======================================================
 # AI PAPER GENERATION
@@ -23,8 +36,7 @@ client = AsyncOpenAI(api_key=EMERGENT_LLM_KEY)
 
 async def generate_paper_ai(data, current_user: dict):
     """
-    Fully-featured AI paper generation service.
-    Mirrors router logic EXACTLY but cleaner & reusable.
+    Fully-featured AI paper generation service (OpenRouter).
     """
 
     # ---------- AUTHORIZATION ----------
@@ -77,26 +89,26 @@ Return ONLY valid JSON in the following format:
   ]
 }}
 
-Important rules:
-- Create exam-quality questions
-- Ensure correct answers are accurate
-- Provide explanations
-- Return ONLY valid JSON
+Rules:
+- Exam-quality questions
+- One correct answer
+- Accurate explanations
+- JSON ONLY (no markdown, no text)
 """
 
     try:
-        # ---------- OPENAI CALL ----------
+        # ---------- OPENROUTER CHAT COMPLETION ----------
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="openai/gpt-oss-20b:free",
             messages=[
                 {
                     "role": "system",
                     "content": (
                         "You are an expert educational content creator. "
-                        "Always return ONLY valid JSON. No markdown."
+                        "Always return ONLY valid JSON."
                     )
                 },
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": prompt}
             ],
             temperature=0.7,
         )
@@ -137,7 +149,6 @@ Important rules:
 
         await db.generated_papers.insert_one(gen_doc)
 
-        # ---------- RESPONSE ----------
         return {
             "success": True,
             "gen_paper_id": gen_paper_id,
@@ -167,40 +178,20 @@ Important rules:
 
 
 # ======================================================
-# VOICE TRANSCRIPTION (WHISPER)
+# VOICE TRANSCRIPTION (IMPORTANT NOTE)
 # ======================================================
+# ⚠️ OpenRouter DOES NOT support Whisper / Audio APIs.
+# You MUST keep OpenAI for transcription OR use another provider.
 
 async def transcribe_audio_ai(
     audio: UploadFile,
     current_user: dict
 ):
     """
-    Robust Whisper transcription service.
+    Whisper transcription MUST still use OpenAI.
     """
 
-    if not EMERGENT_LLM_KEY:
-        raise HTTPException(
-            status_code=500,
-            detail="OpenAI API key not configured"
-        )
-
-    try:
-        audio_bytes = await audio.read()
-
-        result = await client.audio.transcriptions.create(
-            file=(audio.filename or "audio.webm", audio_bytes),
-            model="whisper-1",
-            language="en",
-        )
-
-        return {
-            "success": True,
-            "text": result.text
-        }
-
-    except Exception as e:
-        logger.error(f"Transcription error: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+    raise HTTPException(
+        status_code=501,
+        detail="Audio transcription not supported via OpenRouter. Use OpenAI Whisper separately."
+    )
