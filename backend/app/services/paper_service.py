@@ -56,6 +56,48 @@ async def create_paper(data, user: dict) -> Dict[str, Any]:
 
 
 # -------------------------------------------------
+# PUBLISH GENERATED PAPER
+# -------------------------------------------------
+
+async def publish_generated_paper(
+    gen_paper_id: str,
+    payload: Dict[str, Any],
+    user: dict
+):
+    db = get_db()
+    gen_paper = await get_paper_by_id(gen_paper_id)
+
+    if gen_paper["created_by"] != user["user_id"]:
+        raise HTTPException(403, "Access denied")
+
+    final_data = {
+        "title": payload["title"],
+        "subject": payload["subject"],
+        "exam_type": payload["exam_type"],
+        "sub_type": payload.get("sub_type"),
+        "class_level": payload.get("class_level"),
+        "year": payload.get("year"),
+        "questions": payload["questions"],
+        "language": payload.get("language"),
+    }
+
+    final_paper = await create_paper(final_data, user)
+
+    await db.generated_papers.update_one(
+        {"gen_paper_id": gen_paper_id},
+        {"$set": {
+            "published": True,
+            "published_paper_id": final_paper["paper_id"],
+            "published_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    return {
+        "message": "Paper published successfully",
+        "paper_id": final_paper["paper_id"]
+    }
+
+# -------------------------------------------------
 # PDF GENERATION
 # -------------------------------------------------
 
