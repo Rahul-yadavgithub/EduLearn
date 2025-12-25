@@ -1200,5 +1200,3 @@ app.add_middleware(
 async def shutdown_db_client():
     client.close()
 
-
-# my key = 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
