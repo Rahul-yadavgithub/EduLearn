@@ -40,14 +40,19 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # CORS (ROBUST & RENDER-SAFE)
 # -------------------------------------------------
 
+# -------------------------------------------------
+# CORS (RENDER-SAFE, NON-EMPTY)
+# -------------------------------------------------
+
 _raw_origins = os.getenv("CORS_ORIGINS")
 
-if _raw_origins:
+if _raw_origins and _raw_origins.strip():
     CORS_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 else:
-    # 🔒 SAFE DEFAULT (REQUIRED FOR RENDER)
+    # ✅ HARD SAFE DEFAULT (Render does NOT load .env reliably)
     CORS_ORIGINS = [
         "https://edulearn-frontend-nsg7.onrender.com",
         "http://localhost:3000",
         "http://localhost:5173",
     ]
+

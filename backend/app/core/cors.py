@@ -3,6 +3,8 @@ from starlette.middleware.cors import CORSMiddleware
 from app.core.config import CORS_ORIGINS
 
 def setup_cors(app: FastAPI):
+    print("✅ CORS_ORIGINS ACTIVE:", CORS_ORIGINS)  # TEMP DEBUG
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,
