@@ -9,11 +9,19 @@ db = None
 
 def connect_db():
     global client, db
-    client = AsyncIOMotorClient(MONGO_URL)
-    db = client[DB_NAME]
+
+    if client is None:
+        client = AsyncIOMotorClient(MONGO_URL)
+
+    if db is None:
+        db = client[DB_NAME]
+
+    print("✅ MongoDB connected:", DB_NAME)
 
 
 def close_db():
     global client
+
     if client:
         client.close()
+        print("🛑 MongoDB connection closed")

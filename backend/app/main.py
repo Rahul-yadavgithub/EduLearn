@@ -58,7 +58,7 @@ async def root():
 # -------------------------------------------------
 @app.on_event("startup")
 async def startup():
-    connect_db()   # ✅ NO await
+    connect_db()   # ✅ correct
 
 
 @app.on_event("shutdown")
