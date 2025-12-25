@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, UploadFile, File
 from typing import Optional
 
-from app.schemas.doubt import DoubtCreateSchema, DoubtAnswerSchema
+from app.schemas.doubt import (
+    DoubtCreateSchema,
+    DoubtAnswerSchema,
+    DoubtResponse,
+)
 from app.core.security import get_current_user
 from app.services.doubt_service import (
     list_doubts,
@@ -18,7 +22,7 @@ router = APIRouter(
 # -------------------------------------------------
 # GET DOUBTS
 # -------------------------------------------------
-@router.get("")
+@router.get("", response_model=list[DoubtResponse])
 async def get_doubts(
     status: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
@@ -27,13 +31,14 @@ async def get_doubts(
 
 
 # -------------------------------------------------
-# CREATE DOUBT
+# CREATE DOUBT  ✅ FIXED
 # -------------------------------------------------
-@router.post("")
+@router.post("", response_model=DoubtResponse)
 async def create_doubt_api(
     data: DoubtCreateSchema,
     current_user: dict = Depends(get_current_user),
 ):
+    # ✅ must RETURN the service result
     return await create_doubt(data, current_user)
 
 

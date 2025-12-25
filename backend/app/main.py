@@ -14,6 +14,7 @@ from app.routers import (
     notifications,
     ai,
     seed,
+    progress,  
 )
 
 # -------------------------------------------------
@@ -58,6 +59,8 @@ app.include_router(tests.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(seed.router, prefix="/api")
+app.include_router(progress.router, prefix="/api")  # ✅ ADD THIS
+
 
 # -------------------------------------------------
 # ROOT

@@ -4,6 +4,7 @@ import uuid
 import base64
 
 from app.core.database import get_db
+from app.utils.mongo import serialize_mongo, serialize_mongo_list
 
 
 # -------------------------------------------------
@@ -25,7 +26,7 @@ async def list_doubts(user: dict, status: str | None = None):
         .to_list(100)
     )
 
-    return doubts
+    return serialize_mongo_list(doubts)
 
 
 # -------------------------------------------------
@@ -33,16 +34,15 @@ async def list_doubts(user: dict, status: str | None = None):
 # -------------------------------------------------
 async def create_doubt(data, user: dict):
     db = get_db()
+
     if user["role"] != "student":
         raise HTTPException(
             status_code=403,
             detail="Only students can create doubts"
         )
 
-    doubt_id = f"doubt_{uuid.uuid4().hex[:12]}"
-
     doubt_doc = {
-        "doubt_id": doubt_id,
+        "doubt_id": f"doubt_{uuid.uuid4().hex[:12]}",
         "student_id": user["user_id"],
         "student_name": user["name"],
         "subject": data.subject,
@@ -57,7 +57,9 @@ async def create_doubt(data, user: dict):
     }
 
     await db.doubts.insert_one(doubt_doc)
-    return doubt_doc
+
+    # ✅ safe return
+    return serialize_mongo(doubt_doc)
 
 
 # -------------------------------------------------
@@ -65,6 +67,7 @@ async def create_doubt(data, user: dict):
 # -------------------------------------------------
 async def answer_doubt(doubt_id: str, data, user: dict):
     db = get_db()
+
     if user["role"] != "teacher":
         raise HTTPException(
             status_code=403,
@@ -97,7 +100,6 @@ async def answer_doubt(doubt_id: str, data, user: dict):
         {"$set": update_data}
     )
 
-    # Notification
     await db.notifications.insert_one({
         "notification_id": f"notif_{uuid.uuid4().hex[:12]}",
         "user_id": doubt["student_id"],
