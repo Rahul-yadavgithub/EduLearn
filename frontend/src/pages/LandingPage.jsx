@@ -34,7 +34,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GraduationCap className="w-8 h-8 text-blue-500" />
-            <span className="text-xl font-bold text-white font-['Outfit']">LearnHub</span>
+            <span className="text-xl font-bold text-white font-['Outfit']">EduLearn</span>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/login">
@@ -66,7 +66,7 @@ const LandingPage = () => {
             </h1>
             <p className="text-lg text-slate-400 mb-8 max-w-lg leading-relaxed">
               Your comprehensive platform for JEE, NEET, and school exam preparation. 
-              Practice with real papers, get AI-powered doubt solving, and track your progress.
+              Practice with real papers, get real time doubt solving, and track your progress.
             </p>
             <div className="flex flex-wrap gap-4">
               <Link to="/register?role=student">
@@ -174,35 +174,56 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+          {/* CTA Section */}
       <section className="py-20 px-6" data-testid="cta-section">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="p-12 rounded-3xl bg-gradient-to-br from-blue-900/30 to-slate-900/50 border border-blue-500/20">
-            <h2 className="text-4xl font-bold text-white mb-4 font-['Outfit']">
+          <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-blue-900/30 to-slate-900/50 border border-blue-500/20">
+            
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 font-['Outfit']">
               Ready to Start Your Journey?
             </h2>
+
             <p className="text-slate-400 mb-8 max-w-xl mx-auto">
               Join thousands of students who are already preparing smarter with LearnHub.
             </p>
-            <Link to="/register">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-lg px-12 py-6" data-testid="cta-btn">
-                Start Learning Now
-                <ChevronRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
+
+            {/* CTA Button Wrapper */}
+            <div className="flex justify-center">
+              <Link to="/register" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="
+                    w-full sm:w-auto
+                    max-w-xs
+                    bg-blue-600 hover:bg-blue-700
+                    text-base sm:text-lg
+                    px-6 sm:px-12
+                    py-4 sm:py-6
+                    flex items-center justify-center
+                    gap-2
+                  "
+                  data-testid="cta-btn"
+                >
+                  Start Learning Now
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+              </Link>
+            </div>
+
           </div>
         </div>
       </section>
+
 
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-slate-800" data-testid="footer">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <GraduationCap className="w-6 h-6 text-blue-500" />
-            <span className="text-lg font-semibold text-white font-['Outfit']">LearnHub</span>
+            <span className="text-lg font-semibold text-white font-['Outfit']">EduLearn</span>
           </div>
           <p className="text-slate-500 text-sm">
-            © 2025 LearnHub. All rights reserved.
+            © 2025 EduLearn. All rights reserved.
           </p>
         </div>
       </footer>
