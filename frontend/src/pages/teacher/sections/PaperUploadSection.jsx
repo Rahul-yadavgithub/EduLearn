@@ -92,8 +92,7 @@ const PaperUploadSection = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(`${API}/papers`, formData, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        withCredentials: true
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       toast.success(response.data.message);

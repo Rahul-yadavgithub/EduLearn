@@ -183,8 +183,7 @@ const PaperGeneratorSection = () => {
         questions: generatedQuestions.questions,
         language: generatedQuestions.metadata.language
       }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        withCredentials: true
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       toast.success('Paper published for students!');
