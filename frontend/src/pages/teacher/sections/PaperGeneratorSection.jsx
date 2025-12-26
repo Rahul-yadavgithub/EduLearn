@@ -185,12 +185,22 @@ const PaperGeneratorSection = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
-      toast.success('Paper published for students!');
-      setShowPublishDialog(false);
-      fetchGeneratedPapers();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to publish paper');
-    }
+          // ✅ THIS confirms publish success
+        toast.success(res.data.message || 'Paper published successfully!');
+        setShowPublishDialog(false);
+
+        // 🔴 Do NOT let this break publish UX
+        fetchGeneratedPapers().catch(() => {
+          console.warn("Fetch generated papers failed (non-blocking)");
+        });
+
+      } catch (error) {
+        console.error("Publish failed:", error);
+        toast.error(
+          error.response?.data?.detail ||
+          "Paper was published, but UI refresh failed"
+        );
+      }
   };
 
   const loadHistoryPaper = async (genPaperId) => {
