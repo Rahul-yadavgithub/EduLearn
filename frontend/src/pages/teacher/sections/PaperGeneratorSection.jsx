@@ -97,8 +97,7 @@ const PaperGeneratorSection = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(`${API}/generate-paper`, formData, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        withCredentials: true
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
       setGeneratedQuestions(response.data);
