@@ -82,7 +82,7 @@ Return ONLY valid JSON in this exact format:
     try:
         # ---- OpenRouter call (TEXT GENERATION) ----
         response = await openrouter_client.chat.completions.create(
-            model="google/gemini-1.5-pro",   # ✅ CORRECT & STABLE
+            model="openai/gpt-oss-20b:free",   # ✅ CORRECT & STABLE
             messages=[
                 {"role": "user", "content": prompt}
             ],
@@ -145,7 +145,7 @@ async def transcribe_audio_ai(audio: UploadFile, current_user: dict):
         audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
 
         response = await openrouter_client.chat.completions.create(
-            model="google/gemini-2.0-flash-001",
+            model="google/gemini-2.5-flash-lite",
             messages=[
                 {
                     "role": "user",
