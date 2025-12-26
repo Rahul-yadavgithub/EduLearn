@@ -10,18 +10,17 @@ from app.services.paper_service import (
     get_paper_by_id,
     create_paper,
     generate_paper_pdf,
-    publish_generated_paper,
 )
 
 router = APIRouter(
-    prefix="/generated-papers",
-    tags=["Generated Papers"]
+    prefix="/papers",
+    tags=["Papers"]
 )
 
 # -------------------------------------------------
 # GET ALL PAPERS (STUDENT / TEACHER)
 # -------------------------------------------------
-@router.get("")
+@router.get("", response_model=List[Dict[str, Any]])
 async def get_papers(
     subject: Optional[str] = None,
     exam_type: Optional[str] = None,
@@ -29,64 +28,52 @@ async def get_papers(
     year: Optional[str] = None,
 ):
     """
-    Public endpoint:
-    - Students can see published papers
-    - Teachers can see published papers
+    Used by:
+    - TestsSection.jsx
+    - PapersSection.jsx
     """
-    query: Dict[str, Any] = {}
+    filters: Dict[str, Any] = {}
 
     if subject:
-        query["subject"] = subject
+        filters["subject"] = subject
     if exam_type:
-        query["exam_type"] = exam_type
+        filters["exam_type"] = exam_type
     if class_level:
-        query["class_level"] = class_level
+        filters["class_level"] = class_level
     if year:
-        query["year"] = year
+        filters["year"] = year
 
-    return await list_papers(query)
+    return await list_papers(filters)
 
 
 # -------------------------------------------------
-# GET SINGLE PAPER (STUDENT / TEACHER)
+# GET SINGLE PAPER (EXAM PAGE)
 # -------------------------------------------------
-@router.get("/{paper_id}")
+@router.get("/{paper_id}", response_model=Dict[str, Any])
 async def get_paper(paper_id: str):
     """
-    Fetch a single published paper by ID
+    Used by:
+    - ExamPage.jsx
     """
-    paper = await get_paper_by_id(paper_id)
-    if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
-    return paper
+    return await get_paper_by_id(paper_id)
 
 
 # -------------------------------------------------
-# CREATE PAPER (TEACHER ONLY)
+# CREATE PAPER (TEACHER MANUAL)
 # -------------------------------------------------
-@router.post("")
+@router.post("", response_model=Dict[str, Any])
 async def create_new_paper(
     data: PaperCreateSchema,
     current_user: dict = Depends(get_current_user),
 ):
     """
-    Create a FINAL paper (published for students)
-
-    Used in two cases:
-    1. Teacher manually creates a paper
-    2. Generated paper is published
+    Used when teacher manually creates a paper
     """
-    if current_user.get("role") != "teacher":
-        raise HTTPException(
-            status_code=403,
-            detail="Only teachers can create papers"
-        )
+    if current_user["role"] != "teacher":
+        raise HTTPException(403, "Only teachers can create papers")
 
     if not current_user.get("is_approved", True):
-        raise HTTPException(
-            status_code=403,
-            detail="Your account is pending approval"
-        )
+        raise HTTPException(403, "Your account is pending approval")
 
     return await create_paper(data, current_user)
 
@@ -97,12 +84,9 @@ async def create_new_paper(
 @router.get("/{paper_id}/download")
 async def download_paper_pdf(paper_id: str):
     """
-    Download a published paper as PDF
+    Used by students & teachers
     """
     paper = await get_paper_by_id(paper_id)
-    if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found")
-
     pdf_content = generate_paper_pdf(paper)
 
     filename = paper["title"].replace(" ", "_")
@@ -112,23 +96,5 @@ async def download_paper_pdf(paper_id: str):
         media_type="application/pdf",
         headers={
             "Content-Disposition": f"attachment; filename={filename}.pdf"
-        },
-    )
-
-# -------------------------------------------------
-# PUBLISH GENERATED PAPER → FINAL PAPER
-# -------------------------------------------------
-@router.post("/{gen_paper_id}/publish")
-async def publish_paper(
-    gen_paper_id: str,
-    payload: Dict[str, Any],
-    current_user: dict = Depends(get_current_user)
-):
-    if current_user["role"] != "teacher":
-        raise HTTPException(403, "Only teachers can publish papers")
-
-    return await publish_generated_paper(
-        gen_paper_id,
-        payload,
-        current_user
+        }
     )

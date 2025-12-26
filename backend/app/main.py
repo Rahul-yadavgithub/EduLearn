@@ -15,6 +15,7 @@ from app.routers import (
     ai,
     seed,
     progress,  
+    generated_papers,
 )
 
 # -------------------------------------------------
@@ -60,6 +61,8 @@ app.include_router(notifications.router, prefix="/api")
 app.include_router(ai.router, prefix="/api")
 app.include_router(seed.router, prefix="/api")
 app.include_router(progress.router, prefix="/api")  # ✅ ADD THIS
+app.include_router(generated_papers.router, prefix="/api") 
+
 
 
 # -------------------------------------------------
