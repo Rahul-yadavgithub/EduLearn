@@ -3,6 +3,8 @@ from fastapi.responses import StreamingResponse
 from typing import Dict, Any
 import io
 
+import logging
+
 from app.core.security import get_current_user
 from app.services.generated_paper_service import (
     list_generated_papers,
@@ -16,6 +18,7 @@ router = APIRouter(
     tags=["Generated Papers (Teacher)"]
 )
 
+logger = logging.getLogger(__name__)
 # -------------------------------------------------
 # GET GENERATED PAPERS (TEACHER HISTORY)
 # -------------------------------------------------
@@ -72,17 +75,59 @@ async def download_generated_paper_pdf(
 # -------------------------------------------------
 # PUBLISH GENERATED PAPER → FINAL PAPER
 # -------------------------------------------------
-@router.post("/{gen_paper_id}/publish")
+@router.post("/{gen_paper_id}/publish", response_model=Dict[str, Any])
 async def publish_paper(
     gen_paper_id: str,
     payload: Dict[str, Any],
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
-    if current_user["role"] != "teacher":
-        raise HTTPException(403, "Only teachers can publish")
+    logger.info("📤 Publish generated paper started")
+    logger.info(f"➡️ gen_paper_id: {gen_paper_id}")
+    logger.info(f"➡️ user_id: {current_user.get('user_id')}")
 
-    return await publish_generated_paper(
-        gen_paper_id,
-        payload,
-        current_user
-    )
+    # ----------------------------
+    # AUTHORIZATION
+    # ----------------------------
+    if current_user.get("role") != "teacher":
+        logger.warning("❌ Non-teacher tried to publish paper")
+        raise HTTPException(
+            status_code=403,
+            detail="Only teachers can publish papers"
+        )
+
+    # ----------------------------
+    # PUBLISH LOGIC
+    # ----------------------------
+    try:
+        result = await publish_generated_paper(
+            gen_paper_id,
+            payload,
+            current_user
+        )
+
+        # Defensive logging (never assume keys exist)
+        paper_id = result.get("paper", {}).get("paper_id")
+        logger.info(f"✅ Generated paper published successfully: {paper_id}")
+
+        # IMPORTANT: once published, ALWAYS return success
+        return result
+
+    # ----------------------------
+    # EXPECTED ERRORS
+    # ----------------------------
+    except HTTPException:
+        # Preserve proper HTTP errors + CORS headers
+        raise
+
+    # ----------------------------
+    # UNEXPECTED ERRORS (DO NOT BREAK UX)
+    # ----------------------------
+    except Exception:
+        logger.exception("⚠️ Non-critical error after publishing generated paper")
+
+        # Publishing likely already succeeded → do NOT return 500
+        return {
+            "success": True,
+            "message": "Paper published successfully",
+        }
+

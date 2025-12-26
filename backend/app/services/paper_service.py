@@ -58,6 +58,9 @@ async def create_paper(
     db = get_db()
     await db.papers.insert_one(paper_doc)
 
+    # 🔥 IMPORTANT FIX: remove MongoDB internal field
+    paper_doc.pop("_id", None)
+
     return {
         "success": True,
         "message": "Paper uploaded successfully",
