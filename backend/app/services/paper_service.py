@@ -46,13 +46,16 @@ async def create_paper(data, user: dict) -> Dict[str, Any]:
         "questions": data.questions,
         "language": data.language,
         "created_by": user["user_id"],
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(), 
     }
 
     db = get_db()
     await db.papers.insert_one(paper_doc)
-    return paper_doc
-
+    return {
+        "success": True,
+        "message": "Paper uploaded successfully",
+        "paper": paper_doc
+    }
 
 # -------------------------------------------------
 # PDF GENERATION
