@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import Optional, Dict, Any, List
 import io
+import logging
 
 from app.schemas.paper import PaperCreateSchema
 from app.core.security import get_current_user
@@ -17,6 +18,7 @@ router = APIRouter(
     tags=["Papers"]
 )
 
+logger = logging.getLogger(__name__)
 # -------------------------------------------------
 # GET ALL PAPERS (STUDENT / TEACHER)
 # -------------------------------------------------
@@ -66,16 +68,27 @@ async def create_new_paper(
     data: PaperCreateSchema,
     current_user: dict = Depends(get_current_user),
 ):
-    """
-    Used when teacher manually creates a paper
-    """
+    logger.info("📝 Manual paper creation started")
+    logger.info(f"➡️ user_id: {current_user.get('user_id')}")
+    logger.info(f"➡️ subject: {data.subject}")
+    logger.info(f"➡️ exam_type: {data.exam_type}")
+
     if current_user["role"] != "teacher":
+        logger.warning("❌ Non-teacher tried to create paper")
         raise HTTPException(403, "Only teachers can create papers")
 
     if not current_user.get("is_approved", True):
+        logger.warning("❌ Teacher account not approved")
         raise HTTPException(403, "Your account is pending approval")
 
-    return await create_paper(data, current_user)
+    try:
+        result = await create_paper(data, current_user)
+        logger.info(f"✅ Manual paper created: {result['paper']['paper_id']}")
+        return result
+    except Exception:
+        logger.error("❌ Manual paper creation failed", exc_info=True)
+        raise HTTPException(500, "Failed to create paper")
+
 
 
 # -------------------------------------------------

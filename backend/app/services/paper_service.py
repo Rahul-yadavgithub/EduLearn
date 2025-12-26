@@ -9,6 +9,8 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 
+from app.schemas.paper import PaperCreateSchema
+
 
 # -------------------------------------------------
 # LIST PAPERS
@@ -29,10 +31,14 @@ async def get_paper_by_id(paper_id: str) -> Dict[str, Any]:
     return paper
 
 
+
 # -------------------------------------------------
 # CREATE PAPER
 # -------------------------------------------------
-async def create_paper(data, user: dict) -> Dict[str, Any]:
+async def create_paper(
+    data: PaperCreateSchema,
+    user: dict
+) -> Dict[str, Any]:
     paper_id = f"paper_{uuid.uuid4().hex[:12]}"
 
     paper_doc = {
@@ -46,11 +52,12 @@ async def create_paper(data, user: dict) -> Dict[str, Any]:
         "questions": data.questions,
         "language": data.language,
         "created_by": user["user_id"],
-        "created_at": datetime.now(timezone.utc).isoformat(), 
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
     db = get_db()
     await db.papers.insert_one(paper_doc)
+
     return {
         "success": True,
         "message": "Paper uploaded successfully",
