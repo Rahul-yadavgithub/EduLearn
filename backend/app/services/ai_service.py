@@ -22,7 +22,7 @@ if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not configured")
 
 genai.configure(api_key=GEMINI_API_KEY)
-paper_model = genai.GenerativeModel("models/gemini-1.0-pro")
+paper_model = genai.GenerativeModel("gemini-1.5-pro")
 
 # ======================================================
 # OPENROUTER CONFIG (AUDIO TRANSCRIPTION)
@@ -100,10 +100,22 @@ Important:
 """
 
     try:
-        response = paper_model.generate_content(prompt)
-        text = response.text.strip()
+        response = paper_model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.7,
+                "response_mime_type": "application/json"
+            }
+        )
 
-        parsed = json.loads(text)
+        raw_text = response.text.strip()
+
+        try:
+            parsed = json.loads(raw_text)
+        except json.JSONDecodeError:
+            logger.error(f"Invalid Gemini JSON:\n{raw_text}")
+            raise HTTPException(500, "Gemini returned invalid JSON")
+
         questions = parsed.get("questions", [])
 
         if not questions:
