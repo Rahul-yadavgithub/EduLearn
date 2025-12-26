@@ -7,25 +7,13 @@ import logging
 import base64
 
 from openai import AsyncOpenAI
-import google.generativeai as genai
 
 from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 
 # ======================================================
-# GEMINI CONFIG (PAPER GENERATION)
-# ======================================================
-
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY is not configured")
-
-genai.configure(api_key=GEMINI_API_KEY)
-paper_model = genai.GenerativeModel("gemini-1.5-pro")
-
-# ======================================================
-# OPENROUTER CONFIG (AUDIO TRANSCRIPTION)
+# OPENROUTER CONFIG (TEXT + AUDIO)
 # ======================================================
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
@@ -44,18 +32,20 @@ openrouter_client = AsyncOpenAI(
 )
 
 # ======================================================
-# AI PAPER GENERATION (GEMINI)
+# AI PAPER GENERATION (OPENROUTER – GEMINI)
 # ======================================================
 
 async def generate_paper_ai(data, current_user: dict):
     db = get_db()
 
+    # ---- Permission checks ----
     if current_user["role"] != "teacher":
-        raise HTTPException(403, "Only teachers can generate papers")
+        raise HTTPException(status_code=403, detail="Only teachers can generate papers")
 
     if not current_user.get("is_approved", True):
-        raise HTTPException(403, "Your account is pending approval")
+        raise HTTPException(status_code=403, detail="Your account is pending approval")
 
+    # ---- Prompt building ----
     exam_context = data.purpose
     if data.sub_type:
         exam_context += f" ({data.sub_type})"
@@ -69,15 +59,12 @@ Subject: {data.subject}
 Difficulty: {data.difficulty}
 Language: {data.language}
 
-{f"Reference Content: {data.reference_content}" if data.reference_content else ""}
-
-Return ONLY valid JSON in this format:
+Return ONLY valid JSON in this exact format:
 {{
   "questions": [
     {{
       "question_id": "q1",
       "question_text": "Question text",
-      "subject": "{data.subject}",
       "options": {{
         "A": "Option A",
         "B": "Option B",
@@ -90,42 +77,37 @@ Return ONLY valid JSON in this format:
     }}
   ]
 }}
-
-Important:
-- Create unique, exam-quality questions
-- Ensure correct answers are accurate
-- Provide clear explanations
-- Mix different topics within the subject
-- Return ONLY valid JSON, no markdown or extra text
 """
 
     try:
-        response = paper_model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": 0.7,
-                "response_mime_type": "application/json"
-            }
+        # ---- OpenRouter call (TEXT GENERATION) ----
+        response = await openrouter_client.chat.completions.create(
+            model="google/gemini-1.5-pro",   # ✅ CORRECT & STABLE
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
         )
 
-        raw_text = response.text.strip()
+        raw_text = response.choices[0].message.content.strip()
 
         try:
             parsed = json.loads(raw_text)
         except json.JSONDecodeError:
-            logger.error(f"Invalid Gemini JSON:\n{raw_text}")
-            raise HTTPException(500, "Gemini returned invalid JSON")
+            logger.error(f"Invalid AI JSON:\n{raw_text}")
+            raise HTTPException(status_code=500, detail="AI returned invalid JSON")
 
         questions = parsed.get("questions", [])
-
         if not questions:
-            raise HTTPException(500, "Gemini returned empty questions")
+            raise HTTPException(status_code=500, detail="AI returned empty questions")
 
+        # ---- Normalize question IDs ----
         for i, q in enumerate(questions):
             q.setdefault("question_id", f"q{i+1}")
 
         gen_paper_id = f"gen_{uuid.uuid4().hex[:12]}"
 
+        # ---- Save to DB ----
         await db.generated_papers.insert_one({
             "gen_paper_id": gen_paper_id,
             "created_by": current_user["user_id"],
@@ -146,19 +128,18 @@ Important:
             "questions": questions,
         }
 
-    except json.JSONDecodeError:
-        raise HTTPException(500, "Gemini returned invalid JSON")
+    except HTTPException:
+        raise
 
     except Exception as e:
         logger.error(f"Paper generation failed: {e}")
-        raise HTTPException(500, str(e))
+        raise HTTPException(status_code=500, detail="Paper generation failed")
 
 # ======================================================
 # AUDIO TRANSCRIPTION (OPENROUTER – MULTIMODAL)
 # ======================================================
 
 async def transcribe_audio_ai(audio: UploadFile, current_user: dict):
-
     try:
         audio_bytes = await audio.read()
         audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
@@ -169,10 +150,7 @@ async def transcribe_audio_ai(audio: UploadFile, current_user: dict):
                 {
                     "role": "user",
                     "content": [
-                        {
-                            "type": "text",
-                            "text": "Transcribe this audio accurately into English."
-                        },
+                        {"type": "text", "text": "Transcribe this audio accurately into English."},
                         {
                             "type": "input_audio",
                             "input_audio": {
@@ -193,5 +171,5 @@ async def transcribe_audio_ai(audio: UploadFile, current_user: dict):
         }
 
     except Exception as e:
-        logger.error(f"OpenRouter transcription failed: {e}")
-        raise HTTPException(500, "Audio transcription failed")
+        logger.error(f"Audio transcription failed: {e}")
+        raise HTTPException(status_code=500, detail="Audio transcription failed")
