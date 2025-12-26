@@ -70,7 +70,7 @@ const RegisterPage = () => {
         <div className="w-full max-w-md">
           <Link to="/" className="flex items-center gap-2 mb-8">
             <GraduationCap className="w-8 h-8 text-blue-500" />
-            <span className="text-xl font-bold text-white font-['Outfit']">LearnHub</span>
+            <span className="text-xl font-bold text-white font-['Outfit']">EduLearn</span>
           </Link>
 
           <Card className="bg-slate-900/50 border-slate-800">

@@ -59,7 +59,7 @@ const StudentDashboard = () => {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <GraduationCap className="w-7 h-7 text-blue-500" />
-            <span className="text-lg font-bold text-white font-['Outfit']">LearnHub</span>
+            <span className="text-lg font-bold text-white font-['Outfit']">EduLearn</span>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

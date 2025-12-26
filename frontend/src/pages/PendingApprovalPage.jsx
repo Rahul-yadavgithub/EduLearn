@@ -86,7 +86,7 @@ const PendingApprovalPage = ({ user }) => {
           <div className="mt-6 pt-6 border-t border-slate-800">
             <div className="flex items-center justify-center gap-2 text-slate-500">
               <GraduationCap className="w-5 h-5" />
-              <span className="text-sm">LearnHub Teacher Portal</span>
+              <span className="text-sm">EduLearn Teacher Portal</span>
             </div>
           </div>
         </CardContent>
