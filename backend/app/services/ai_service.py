@@ -128,7 +128,7 @@ Important:
 
         await db.generated_papers.insert_one({
             "gen_paper_id": gen_paper_id,
-            "teacher_id": current_user["user_id"],
+            "created_by": current_user["user_id"],
             "subject": data.subject,
             "difficulty": data.difficulty,
             "exam_type": data.purpose,
