@@ -96,7 +96,7 @@ const PaperUploadSection = () => {
         withCredentials: true
       });
 
-      toast.success('Paper uploaded successfully!');
+      toast.success(response.data.message);
       // Reset form
       setFormData({
         title: '',
