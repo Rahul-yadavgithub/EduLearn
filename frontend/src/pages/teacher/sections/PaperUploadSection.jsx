@@ -95,7 +95,10 @@ const PaperUploadSection = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
+      console.log("hellow Brow Response:", response);
+
       toast.success("Paper Published successfully!");
+      console.log("Hellow only");
       // Reset form
       setFormData({
         title: '',

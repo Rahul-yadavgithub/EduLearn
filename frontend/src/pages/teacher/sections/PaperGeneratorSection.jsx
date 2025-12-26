@@ -172,7 +172,7 @@ const PaperGeneratorSection = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${API}/generated-papers/${generatedQuestions.gen_paper_id}/publish`, {
+      const res = await axios.post(`${API}/generated-papers/${generatedQuestions.gen_paper_id}/publish`, {
         title: publishData.title,
         subject: generatedQuestions.metadata.subject,
         exam_type: generatedQuestions.metadata.exam_type,
@@ -185,8 +185,11 @@ const PaperGeneratorSection = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
+      console.log("hello bro !!")
+
           // ✅ THIS confirms publish success
         toast.success(res.data.message || 'Paper published successfully!');
+        console.log("Hellow next Bro !!");
         setShowPublishDialog(false);
 
         // 🔴 Do NOT let this break publish UX
@@ -197,7 +200,7 @@ const PaperGeneratorSection = () => {
       } catch (error) {
         console.error("Publish failed:", error);
         toast.error(
-          error.response?.data?.detail ||
+          error.res?.data?.detail ||
           "Paper was published, but UI refresh failed"
         );
       }
