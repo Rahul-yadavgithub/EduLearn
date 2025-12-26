@@ -172,7 +172,7 @@ const PaperGeneratorSection = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API}/generated-papers/${generatedQuestions.gen_paper_id}/publish`, {
+      const response = await axios.post(`${API}/generated-papers/${generatedQuestions.gen_paper_id}/publish`, {
         title: publishData.title,
         subject: generatedQuestions.metadata.subject,
         exam_type: generatedQuestions.metadata.exam_type,
