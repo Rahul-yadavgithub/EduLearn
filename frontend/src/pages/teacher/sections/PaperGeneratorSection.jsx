@@ -175,23 +175,21 @@ const handlePublish = async () => {
     return;
   }
 
-  // 🔐 SAFELY RESOLVE REQUIRED FIELDS
-  const subject =
-    generatedQuestions.subject ??
-    generatedQuestions.metadata?.subject;
+  const subject = generatedQuestions.subject;
+  const examType = generatedQuestions.exam_type;
+  const language = generatedQuestions.language || 'English';
+  const year = publishData.year || new Date().getFullYear().toString();
 
-  const examType =
-    generatedQuestions.exam_type ??
-    generatedQuestions.metadata?.exam_type;
-
-  const language =
-    generatedQuestions.language ??
-    generatedQuestions.metadata?.language ??
-    'English';
-
-  // 🚨 PREVENT BAD REQUESTS
   if (!subject || !examType) {
     toast.error('Generated paper is missing subject or exam type');
+    return;
+  }
+
+  if (
+    !Array.isArray(generatedQuestions.questions) ||
+    generatedQuestions.questions.length === 0
+  ) {
+    toast.error('Generated paper has no questions');
     return;
   }
 
@@ -206,7 +204,7 @@ const handlePublish = async () => {
         exam_type: examType,
         sub_type: formData.sub_type || null,
         class_level: formData.class_level || null,
-        year: publishData.year,
+        year,
         questions: generatedQuestions.questions,
         language,
       },
@@ -236,41 +234,47 @@ const handlePublish = async () => {
 
 
 
-  const loadHistoryPaper = async (genPaperId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API}/generated-papers/${genPaperId}`, {
+
+const loadHistoryPaper = async (genPaperId) => {
+  try {
+    const token = localStorage.getItem('token');
+
+    const response = await axios.get(
+      `${API}/generated-papers/${genPaperId}`,
+      {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        withCredentials: true
-      });
-      
-      setGeneratedQuestions({
-        gen_paper_id: response.data.gen_paper_id,
-        questions: response.data.questions,
-        metadata: {
-          num_questions: response.data.num_questions,
-          subject: response.data.subject,
-          difficulty: response.data.difficulty,
-          exam_type: response.data.exam_type,
-          language: response.data.language
-        }
-      });
-      
-      setFormData(prev => ({
-        ...prev,
-        subject: response.data.subject,
-        difficulty: response.data.difficulty,
-        purpose: response.data.exam_type,
-        sub_type: response.data.sub_type || '',
-        class_level: response.data.class_level || '',
-        language: response.data.language
-      }));
-      
-      toast.success('Paper loaded from history');
-    } catch (error) {
-      toast.error('Failed to load paper');
-    }
-  };
+        withCredentials: true,
+      }
+    );
+
+    // ✅ NORMALIZED SHAPE (NO metadata)
+    setGeneratedQuestions({
+      gen_paper_id: response.data.gen_paper_id,
+      questions: response.data.questions,
+      subject: response.data.subject,
+      exam_type: response.data.exam_type,
+      difficulty: response.data.difficulty,
+      language: response.data.language,
+      num_questions: response.data.num_questions,
+    });
+
+    // ✅ Keep form data in sync
+    setFormData((prev) => ({
+      ...prev,
+      subject: response.data.subject,
+      difficulty: response.data.difficulty,
+      purpose: response.data.exam_type,
+      sub_type: response.data.sub_type || '',
+      class_level: response.data.class_level || '',
+      language: response.data.language,
+    }));
+
+    toast.success('Paper loaded from history');
+  } catch (error) {
+    console.error('Failed to load paper:', error);
+    toast.error('Failed to load paper');
+  }
+};
 
   return (
     <div data-testid="paper-generator-section">
