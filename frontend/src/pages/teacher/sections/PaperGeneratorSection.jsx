@@ -175,6 +175,26 @@ const handlePublish = async () => {
     return;
   }
 
+  // 🔐 SAFELY RESOLVE REQUIRED FIELDS
+  const subject =
+    generatedQuestions.subject ??
+    generatedQuestions.metadata?.subject;
+
+  const examType =
+    generatedQuestions.exam_type ??
+    generatedQuestions.metadata?.exam_type;
+
+  const language =
+    generatedQuestions.language ??
+    generatedQuestions.metadata?.language ??
+    'English';
+
+  // 🚨 PREVENT BAD REQUESTS
+  if (!subject || !examType) {
+    toast.error('Generated paper is missing subject or exam type');
+    return;
+  }
+
   try {
     const token = localStorage.getItem('token');
 
@@ -182,25 +202,24 @@ const handlePublish = async () => {
       `${API}/generated-papers/${generatedQuestions.gen_paper_id}/publish`,
       {
         title: publishData.title,
-        subject: generatedQuestions.subject,
-        exam_type: generatedQuestions.exam_type,
+        subject,
+        exam_type: examType,
         sub_type: formData.sub_type || null,
         class_level: formData.class_level || null,
         year: publishData.year,
         questions: generatedQuestions.questions,
-        language: generatedQuestions.language || 'English',
+        language,
       },
       {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       }
     );
 
-    console.log("✅ Publish API response:", res.data);
+    console.log('✅ Publish API response:', res.data);
 
     toast.success(res.data.message || 'Paper published successfully!');
     setShowPublishDialog(false);
 
-    // Non-blocking UI refresh
     fetchGeneratedPapers().catch(() => {
       console.warn('Fetch generated papers failed (non-blocking)');
     });
@@ -214,6 +233,7 @@ const handlePublish = async () => {
     );
   }
 };
+
 
 
   const loadHistoryPaper = async (genPaperId) => {
