@@ -100,7 +100,18 @@ const PaperGeneratorSection = () => {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
-      setGeneratedQuestions(response.data);
+      const data = response.data;
+
+      setGeneratedQuestions({
+        gen_paper_id: data.gen_paper_id,
+        questions: data.questions,
+        subject: data.metadata?.subject,
+        exam_type: data.metadata?.exam_type,
+        difficulty: data.metadata?.difficulty,
+        num_questions: data.metadata?.num_questions,
+        language: data.language || formData.language,
+      });
+      
       toast.success('Paper generated successfully!');
       fetchGeneratedPapers(); // Refresh history
       
@@ -176,7 +187,9 @@ const handlePublish = async () => {
   }
 
   const subject = generatedQuestions.subject;
+  console.log("Subject is :", subject);
   const examType = generatedQuestions.exam_type;
+  console.log("ExamType is :", examType);
   const language = generatedQuestions.language || 'English';
   const year = publishData.year || new Date().getFullYear().toString();
 
