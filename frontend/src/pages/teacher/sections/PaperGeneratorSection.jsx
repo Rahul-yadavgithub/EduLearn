@@ -164,47 +164,57 @@ const PaperGeneratorSection = () => {
     }
   };
 
-  const handlePublish = async () => {
-    if (!publishData.title) {
-      toast.error('Please enter a title for the paper');
-      return;
-    }
+const handlePublish = async () => {
+  if (!publishData.title) {
+    toast.error('Please enter a title for the paper');
+    return;
+  }
 
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(`${API}/generated-papers/${generatedQuestions.gen_paper_id}/publish`, {
+  if (!generatedQuestions) {
+    toast.error('Generated paper data is missing');
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+
+    const res = await axios.post(
+      `${API}/generated-papers/${generatedQuestions.gen_paper_id}/publish`,
+      {
         title: publishData.title,
-        subject: generatedQuestions.metadata.subject,
-        exam_type: generatedQuestions.metadata.exam_type,
-        sub_type: formData.sub_type,
-        class_level: formData.class_level,
+        subject: generatedQuestions.subject,
+        exam_type: generatedQuestions.exam_type,
+        sub_type: formData.sub_type || null,
+        class_level: formData.class_level || null,
         year: publishData.year,
         questions: generatedQuestions.questions,
-        language: generatedQuestions.metadata.language
-      }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-
-      console.log("hello bro !!")
-
-          // ✅ THIS confirms publish success
-        toast.success(res.data.message || 'Paper published successfully!');
-        console.log("Hellow next Bro !!");
-        setShowPublishDialog(false);
-
-        // 🔴 Do NOT let this break publish UX
-        fetchGeneratedPapers().catch(() => {
-          console.warn("Fetch generated papers failed (non-blocking)");
-        });
-
-      } catch (error) {
-        console.error("Publish failed:", error);
-        toast.error(
-          error.res?.data?.detail ||
-          "Paper was published, but UI refresh failed"
-        );
+        language: generatedQuestions.language || 'English',
+      },
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       }
-  };
+    );
+
+    console.log("✅ Publish API response:", res.data);
+
+    toast.success(res.data.message || 'Paper published successfully!');
+    setShowPublishDialog(false);
+
+    // Non-blocking UI refresh
+    fetchGeneratedPapers().catch(() => {
+      console.warn('Fetch generated papers failed (non-blocking)');
+    });
+
+  } catch (error) {
+    console.error('❌ Publish failed:', error);
+
+    toast.error(
+      error.response?.data?.detail ||
+      'Paper was published, but UI refresh failed'
+    );
+  }
+};
+
 
   const loadHistoryPaper = async (genPaperId) => {
     try {

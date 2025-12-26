@@ -73,49 +73,84 @@ const PaperUploadSection = () => {
     }));
   };
 
-  const handleSubmit = async () => {
-    // Validation
-    if (!formData.title || !formData.subject || !formData.exam_type) {
-      toast.error('Please fill all required fields');
-      return;
-    }
+    const handleSubmit = async () => {
+      // ----------------------------
+      // VALIDATION
+      // ----------------------------
+      if (!formData.title || !formData.subject || !formData.exam_type) {
+        toast.error('Please fill all required fields');
+        return;
+      }
 
-    const emptyQuestions = formData.questions.filter(q => 
-      !q.question_text || !q.options.A || !q.options.B || !q.options.C || !q.options.D
-    );
-    if (emptyQuestions.length > 0) {
-      toast.error('Please complete all questions');
-      return;
-    }
+      if (!Array.isArray(formData.questions)) {
+        toast.error('Invalid questions format');
+        return;
+      }
 
-    setUploading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`${API}/papers`, formData, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
+      const emptyQuestions = formData.questions.filter(
+        q =>
+          !q.question_text ||
+          !q.options?.A ||
+          !q.options?.B ||
+          !q.options?.C ||
+          !q.options?.D
+      );
 
-      console.log("hellow Brow Response:", response);
+      if (emptyQuestions.length > 0) {
+        toast.error('Please complete all questions');
+        return;
+      }
 
-      toast.success("Paper Published successfully!");
-      console.log("Hellow only");
-      // Reset form
-      setFormData({
-        title: '',
-        subject: '',
-        exam_type: '',
-        sub_type: '',
-        class_level: '',
-        year: new Date().getFullYear().toString(),
-        language: 'English',
-        questions: [createEmptyQuestion()]
-      });
-    } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to upload paper');
-    } finally {
-      setUploading(false);
-    }
-  };
+      // ----------------------------
+      // SUBMIT
+      // ----------------------------
+      setUploading(true);
+
+      try {
+        const token = localStorage.getItem('token');
+
+        const response = await axios.post(
+          `${API}/papers`,
+          formData,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }
+        );
+
+        console.log('✅ Paper create response:', response?.data);
+
+        toast.success(
+          response?.data?.message || 'Paper published successfully!'
+        );
+
+        // ----------------------------
+        // RESET FORM (SAFE)
+        // ----------------------------
+        setFormData({
+          title: '',
+          subject: '',
+          exam_type: '',
+          sub_type: '',
+          class_level: '',
+          year: new Date().getFullYear().toString(),
+          language: 'English',
+          questions: [createEmptyQuestion()],
+        });
+
+      } catch (error) {
+        console.error('❌ Paper creation failed:', error);
+
+        toast.error(
+          error.response?.data?.detail ||
+          error.message ||
+          'Paper may be created, but response failed'
+        );
+
+      } finally {
+        setUploading(false);
+      }
+    };
+
 
   return (
     <div data-testid="paper-upload-section">
